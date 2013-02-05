@@ -1,0 +1,20 @@
+Package: kinGUI2
+Type: Package
+Title: What the package does (short line)
+Version: 1.0
+Date: 2012-03-14
+Author: Who wrote it
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Description: More about what it does (maybe more than one line)
+License: What license is it under?
+Collate:
+    'IRLSkinfit.full.R'
+    'IRLSkinfit.gui.r'
+    'kingraph.R'
+    'kingui.control.r'
+    'KinGUI2-package.r'
+    'kinplot.R'
+    'mcmckinfit.full.r'
+    'mkinfit.full.R'
+    'mkinfit.gui.R'
+    'mkinmod.full.r'

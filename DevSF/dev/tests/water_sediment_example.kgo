@@ -1,0 +1,160 @@
+Version: 1.2011.1117.1330 
+
+Study:Water-Sediment
+
+Equations:
+[1] d_P_water = - k_P_water_to_sink * P_water - k_P_water_to_P_sediment * P_water - k_P_water_to_M_water * P_water + k_P_sediment_to_P_water * P_sediment
+[1] d_P_sediment = - k_P_sediment_to_sink * P_sediment + k_P_water_to_P_sediment * P_water - k_P_sediment_to_P_water * P_sediment - k_P_sediment_to_M_sediment * P_sediment
+[1] d_M_water = - k_M_water_to_sink * M_water + k_P_water_to_M_water * P_water - k_M_water_to_M_sediment * M_water + k_M_sediment_to_M_water * M_sediment
+[1] d_M_sediment = - k_M_sediment_to_sink * M_sediment + k_P_sediment_to_M_sediment * P_sediment + k_M_water_to_M_sediment * M_water - k_M_sediment_to_M_water * M_sediment
+
+Starting values for optimised parameters:
+                           initial   type lower upper
+M0_P_water                   1e+02  state     0   Inf
+k_P_water_to_sink            1e-01 deparm     0   Inf
+k_P_sediment_to_sink         1e-01 deparm     0   Inf
+k_M_water_to_sink            1e-01 deparm     0   Inf
+k_M_sediment_to_sink         1e-01 deparm     0   Inf
+k_P_water_to_P_sediment      1e-02 deparm     0   Inf
+k_P_water_to_M_water         1e-02 deparm     0   Inf
+k_P_sediment_to_P_water      1e-02 deparm     0   Inf
+k_P_sediment_to_M_sediment   1e-02 deparm     0   Inf
+k_M_water_to_M_sediment      1e-02 deparm     0   Inf
+k_M_sediment_to_M_water      1e-02 deparm     0   Inf
+
+Fixed parameter values:
+              value  type   by
+M0_P_sediment     0 state user
+M0_M_water        0 state user
+M0_M_sediment     0 state user
+
+Optimised parameters:
+                             Estimate Std. Error   Lower CI Upper CI   Pr(>t)    
+M0_P_water                 151.153392   2.558306 146.139204  156.168  < 2e-16 ***
+k_P_water_to_sink            0.085372   0.023606   0.039106    0.132 0.000352 ***
+k_P_sediment_to_sink         0.033066   0.018780  -0.003743    0.070 0.042270 *  
+k_M_water_to_sink            0.103718   0.046268   0.013034    0.194 0.014772 *  
+k_M_sediment_to_sink         0.066010   0.049673  -0.031347    0.163 0.095017 .  
+k_P_water_to_P_sediment      0.419819   0.024382   0.372031    0.468  < 2e-16 ***
+k_P_water_to_M_water         0.047945   0.005315   0.037528    0.058 2.74e-12 ***
+k_P_sediment_to_P_water      0.203998   0.022613   0.159678    0.248 2.74e-12 ***
+k_P_sediment_to_M_sediment   0.064441   0.004937   0.054764    0.074  < 2e-16 ***
+k_M_water_to_M_sediment      0.362608   0.044087   0.276200    0.449 4.34e-11 ***
+k_M_sediment_to_M_water      0.454211   0.064160   0.328460    0.580 2.50e-09 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1 
+
+Residual standard error: 1.107 on 49 degrees of freedom
+
+Estimated formation fractions:
+                              ff
+P_water_to_sink          0.15434
+P_water_to_P_sediment    0.75898
+P_water_to_M_water       0.08668
+P_sediment_to_sink       0.10967
+P_sediment_to_P_water    0.67660
+P_sediment_to_M_sediment 0.21373
+M_water_to_sink          0.22242
+M_water_to_M_sediment    0.77758
+M_sediment_to_sink       0.12689
+M_sediment_to_M_water    0.87311
+
+Chi2 error levels in percent :
+           err.min n.optim df
+All data    8.0736      11 49
+P_water     6.8025       4 11
+P_sediment  7.2074       3 12
+M_water     5.4379       2 13
+M_sediment  0.4946       2 13
+
+Estimated disappearance times:
+             DT50   DT90 Kinetic
+P_water    1.2531 4.1628     SFO
+P_sediment 2.2990 7.6370     SFO
+M_water    1.4864 4.9377     SFO
+M_sediment 1.3324 4.4262     SFO
+
+Additional Statistics:
+           err.sig    RMSE     EF     R2
+All data   1.73653 1.82595 0.9937 0.9937
+P_water    2.04659 2.34392 0.9960 0.9961
+P_sediment 2.25324 2.66772 0.9800 0.9807
+M_water    0.69521 0.84884 0.9641 0.9643
+M_sediment 0.05886 0.07187 0.9997 0.9997
+
+Parameter correlation:
+                           M0_P_water k_P_water_to_sink k_P_sediment_to_sink k_M_water_to_sink k_M_sediment_to_sink k_P_water_to_P_sediment k_P_water_to_M_water k_P_sediment_to_P_water k_P_sediment_to_M_sediment k_M_water_to_M_sediment k_M_sediment_to_M_water
+M0_P_water                    1.00000           0.60007             -0.38473           0.23348             -0.23923                -0.12286             -0.03721                 0.25856                   -0.01421                -0.22484                 0.01777
+k_P_water_to_sink             0.60007           1.00000             -0.93832           0.23620             -0.15838                -0.32758             -0.13807                 0.40393                    0.46394                -0.32632                -0.03862
+k_P_sediment_to_sink         -0.38473          -0.93832              1.00000          -0.19277              0.07757                 0.35524              0.13583                -0.41708                   -0.53922                 0.29554                 0.05078
+k_M_water_to_sink             0.23348           0.23620             -0.19277           1.00000             -0.98805                 0.25206              0.42390                 0.38147                   -0.28894                -0.08458                 0.66609
+k_M_sediment_to_sink         -0.23923          -0.15838              0.07757          -0.98805              1.00000                -0.31685             -0.43867                -0.35791                    0.36074                 0.09397                -0.65344
+k_P_water_to_P_sediment      -0.12286          -0.32758              0.35524           0.25206             -0.31685                 1.00000              0.08442                 0.57564                   -0.36188                -0.44883                -0.15191
+k_P_water_to_M_water         -0.03721          -0.13807              0.13583           0.42390             -0.43867                 0.08442              1.00000                 0.09862                   -0.84294                -0.10404                 0.12858
+k_P_sediment_to_P_water       0.25856           0.40393             -0.41708           0.38147             -0.35791                 0.57564              0.09862                 1.00000                   -0.01962                -0.63484                -0.20450
+k_P_sediment_to_M_sediment   -0.01421           0.46394             -0.53922          -0.28894              0.36074                -0.36188             -0.84294                -0.01962                    1.00000                 0.07954                -0.04084
+k_M_water_to_M_sediment      -0.22484          -0.32632              0.29554          -0.08458              0.09397                -0.44883             -0.10404                -0.63484                    0.07954                 1.00000                 0.66197
+k_M_sediment_to_M_water       0.01777          -0.03862              0.05078           0.66609             -0.65344                -0.15191              0.12858                -0.20450                   -0.04084                 0.66197                 1.00000
+
+Data:
+    time   variable observed err-std predicted residual
+  0.0000 P_water    151.2783  2.3455  151.1534   0.1249
+  1.4286 P_water     75.8217  2.3455   75.4700   0.3517
+  2.8571 P_water     44.4141  2.3455   46.0271  -1.6131
+  4.2857 P_water     31.8548  2.3455   33.0008  -1.1460
+  5.7143 P_water     24.6258  2.3455   26.0455  -1.4197
+  7.1429 P_water     28.6681  2.3455   21.5370   7.1310
+  8.5714 P_water     15.8639  2.3455   18.1756  -2.3116
+ 10.0000 P_water     15.0966  2.3455   15.4695  -0.3729
+ 11.4286 P_water     13.8915  2.3455   13.2121   0.6794
+ 12.8571 P_water      8.7660  2.3455   11.2999  -2.5339
+ 14.2857 P_water      8.7813  2.3455    9.6699  -0.8886
+ 15.7143 P_water      7.8632  2.3455    8.2769  -0.4138
+ 17.1429 P_water      9.3013  2.3455    7.0853   2.2160
+ 18.5714 P_water      7.8805  2.3455    6.0654   1.8151
+ 20.0000 P_water      7.1817  2.3455    5.1924   1.9893
+  0.0000 P_sediment   0.0000  2.6657    0.0000   0.0000
+  1.4286 P_sediment  49.7138  2.6657   50.9507  -1.2369
+  2.8571 P_sediment  57.1438  2.6657   61.1728  -4.0290
+  4.2857 P_sediment  64.1696  2.6657   58.4174   5.7522
+  5.7143 P_sediment  52.8421  2.6657   52.0939   0.7481
+  7.1429 P_sediment  49.0540  2.6657   45.3146   3.7394
+  8.5714 P_sediment  34.1825  2.6657   39.0403  -4.8578
+ 10.0000 P_sediment  34.7838  2.6657   33.5069   1.2769
+ 11.4286 P_sediment  27.1243  2.6657   28.7140  -1.5896
+ 12.8571 P_sediment  24.2174  2.6657   24.5916  -0.3741
+ 14.2857 P_sediment  20.5235  2.6657   21.0558  -0.5323
+ 15.7143 P_sediment  18.9370  2.6657   18.0267   0.9103
+ 17.1429 P_sediment  16.4553  2.6657   15.4327   1.0226
+ 18.5714 P_sediment  10.5970  2.6657   13.2118  -2.6148
+ 20.0000 P_sediment   9.1970  2.6657   11.3104  -2.1134
+  0.0000 M_water      0.0000  0.8488    0.0000   0.0000
+  1.4286 M_water      6.9781  0.8488    5.9289   1.0492
+  2.8571 M_water      7.6268  0.8488    8.8881  -1.2613
+  4.2857 M_water     11.8435  0.8488   11.3330   0.5105
+  5.7143 M_water     12.8298  0.8488   13.3494  -0.5196
+  7.1429 M_water     15.8863  0.8488   14.8389   1.0474
+  8.5714 M_water     14.9594  0.8488   15.7998  -0.8404
+ 10.0000 M_water     16.1275  0.8488   16.2957  -0.1683
+ 11.4286 M_water     15.5082  0.8488   16.4110  -0.9028
+ 12.8571 M_water     16.7869  0.8488   16.2283   0.5586
+ 14.2857 M_water     17.1502  0.8488   15.8202   1.3300
+ 15.7143 M_water     14.0920  0.8488   15.2473  -1.1554
+ 17.1429 M_water     15.2253  0.8488   14.5590   0.6663
+ 18.5714 M_water     13.0461  0.8488   13.7946  -0.7485
+ 20.0000 M_water     13.7058  0.8488   12.9855   0.7203
+  0.0000 M_sediment   0.0000  0.0719    0.0000   0.0000
+  1.4286 M_sediment   3.5936  0.0719    3.6137  -0.0201
+  2.8571 M_sediment   8.3625  0.0719    8.3156   0.0469
+  4.2857 M_sediment  11.5501  0.0719   11.6239  -0.0738
+  5.7143 M_sediment  13.7615  0.0719   13.6709   0.0905
+  7.1429 M_sediment  14.7730  0.0719   14.8389  -0.0660
+  8.5714 M_sediment  15.4661  0.0719   15.4048   0.0613
+ 10.0000 M_sediment  15.5165  0.0719   15.5464  -0.0300
+ 11.4286 M_sediment  15.2242  0.0719   15.3822  -0.1580
+ 12.8571 M_sediment  15.1158  0.0719   14.9962   0.1196
+ 14.2857 M_sediment  14.5100  0.0719   14.4517   0.0582
+ 15.7143 M_sediment  13.8426  0.0719   13.7973   0.0452
+ 17.1429 M_sediment  13.0485  0.0719   13.0711  -0.0226
+ 18.5714 M_sediment  12.2220  0.0719   12.3029  -0.0809
+ 20.0000 M_sediment  11.5373  0.0719   11.5157   0.0216

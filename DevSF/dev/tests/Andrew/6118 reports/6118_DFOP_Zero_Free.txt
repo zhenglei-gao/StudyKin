@@ -1,0 +1,74 @@
+KinGUI Version: 1.1
+
+Input Data:         6118_Z.txt
+
+# =================================
+# Results of the kinetic evaluation
+# =================================
+
+# ---------------------------------
+# Initial values
+# ---------------------------------
+                    Initial Value    Lower Bound      Upper Bound      
+        Parent_M(0):     2.0000           0.0000              Inf      
+          Parent_k1:     3.6000           0.0000              Inf      
+          Parent_k2:     0.2300           0.0000              Inf      
+           Parent_g:     0.1500           0.0000              Inf      
+        Parent_FFA1:     0.0000           0.0000           1.0000      
+            A1_M(0):     0.0000           0.0000              Inf      
+               A1_k:     0.8000           0.0000              Inf      
+          Sink_M(0):     0.0000           0.0000              Inf      
+
+# ---------------------------------
+# Chi2 error estimation
+# ---------------------------------
+                     Parent        A1      Sink
+        Chi2Err%:   21.9515   16.4861       NaN
+   Kinetic Model:      dfop       sfo      sink
+
+# ---------------------------------
+# Parameter estimation
+# ---------------------------------
+
+    Parameter   Estimate     St.Dev   Prob > t
+    Parent_k1     3.6000        NaN        NaN
+    Parent_k2     0.2300        NaN        NaN
+     Parent_g     0.1500        NaN        NaN
+  Parent_FFA1     1.0000        NaN
+   Parent_FFS   3.0e-007
+         A1_k     0.8000        NaN        NaN
+       A1_FFS     1.0000
+  Parent_M(0)     2.1380        NaN
+      A1_M(0)     0.0587        NaN
+    Sink_M(0)     0.0000
+
+# ---------------------------------
+# DT50 and DT90 values
+# ---------------------------------
+                       Parent           A1         Sink
+           DT50:       2.3074       0.8664          NaN
+           DT90:       9.3046       2.8782          NaN
+  Kinetic model:         dfop          sfo         sink
+
+# ---------------------------------
+# Measured vs. predicted values
+# ---------------------------------
+   Time            Compartment Parent                Compartment A1              Compartment Sink
+         measured predicted  residual  measured predicted  residual  measured predicted  residual
+    0.0    1.8680    2.1380   -0.2700    0.0000    0.0587   -0.0587       NaN    0.0000       NaN
+    0.0    2.3140    2.1380    0.1760    0.0000    0.0587   -0.0587       NaN    0.0000       NaN
+    0.2    1.6760    1.9246   -0.2486    0.1920    0.2502   -0.0582       NaN    0.0219       NaN
+    0.2    2.0950    1.9246    0.1704    0.2190    0.2502   -0.0312       NaN    0.0219       NaN
+    1.0    1.3620    1.4527   -0.0907    0.4610    0.4535    0.0075       NaN    0.2905       NaN
+    1.0    2.4440    1.4527    0.9913    0.4440    0.4535   -0.0095       NaN    0.2905       NaN
+    3.0    0.6280    0.9115   -0.2835    0.3750    0.3440    0.0310       NaN    0.9412       NaN
+    3.0    0.5060    0.9115   -0.4055    0.2940    0.3440   -0.0500       NaN    0.9412       NaN
+    7.0    0.3100    0.3633   -0.0533    0.1700    0.1456    0.0244       NaN    1.6879       NaN
+    7.0    0.2350    0.3633   -0.1283    0.1750    0.1456    0.0294       NaN    1.6879       NaN
+   16.0    0.0750    0.0458    0.0292    0.0340    0.0185    0.0155       NaN    2.1324       NaN
+   16.0    0.0880    0.0458    0.0422    0.0510    0.0185    0.0325       NaN    2.1324       NaN
+   21.0    0.0300    0.0145    0.0155    0.0200    0.0059    0.0141       NaN    2.1764       NaN
+   21.0    0.0330    0.0145    0.0185    0.0260    0.0059    0.0201       NaN    2.1764       NaN
+   28.0    0.0230    0.0029    0.0201    0.0140    0.0012    0.0128       NaN    2.1927       NaN
+   28.0    0.0150    0.0029    0.0121    0.0110    0.0012    0.0098       NaN    2.1927       NaN
+
