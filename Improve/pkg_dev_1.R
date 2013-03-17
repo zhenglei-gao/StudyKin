@@ -25,20 +25,22 @@ file.remove(temp)
 library(devtools)
 has_devel()
 #### 
+install_github("pryr")
 # -------------------------------------------------------
 library(roxygen2)
 # upper directory of the package
 setwd('C:/Users/z.gao/Documents/GitHub/')  
 setwd("C:/Projects2013/KinEvalGit/")
+setwd("E:/KinEvalGit/")
 roxygenize('KineticEval')
-## check('KineticEval',cleanup=FALSE)
-check('KineticEval',cleanup=TRUE)
+check('KineticEval')
+document('KineticEval')
 build('KineticEval')
-install("KineticEval")
-install("KineticEval",args='-l "M:/Personal Data/R/win-library/2.15"')
 install_github("KineticEval","zhenglei-gao")
 # --------------------------------------------------------
-
+(.packages())
+detach("package:KineticEval")
+search()
 # --------------------------------------------------------
 ## Install the package  R CMD INSTALL pkg
 ## check on cran R CMD check pkg
