@@ -1,7 +1,430 @@
 Trust Region Reflective?
 ========================================================
+## To improve speed !
 
-## using nls instead of optim directly.
+### Using Cpp
+
+* https://github.com/hadley/devtools/wiki/Rcpp
+* http://www.cplusplus.com/articles/1ywTURfi/
+* http://en.wikipedia.org/wiki/Compatibility_of_C_and_C%2B%2B
+
+### Better finite differece
+
+<u>some text</u>
+
+* Quoted from https://stat.ethz.ch/pipermail/r-help/2008-March/158228.html
+
+If 'myfunc' is a vector function and can be vectorized in R, then it 
+is even faster to use the following:
+```{r}
+
+
+grad.vec <- function(x, fn, ..., eps = sqrt(.Machine$double.neg.eps)){
+    x1 <- x + eps * pmax(abs(x), 1)
+    x2 <- x - eps * pmax(abs(x), 1)
+    (fn(x1, ...) - fn(x2, ...)) / (x1 - x2)
+}
+
+grad.1 <- function(x, fn) {
+    x <- sort(x)
+    x.e <- head(embed(x, 2), -1)
+    y.e <- embed(fn(x), 3)
+    hh <- abs(diff(x.e[1, ]))
+    apply(y.e, 1, function(z) (z[1] - z[3])/(2 * hh))
+}
+
+myfunc.1 <- function(x){
+    (exp(x) - x) / 10
+}
+
+p0 <- rexp(1000)
+system.time(for(i in 1:500) out1 <- grad.1(p0, myfunc.1))
+system.time(for(i in 1:500) out2 <- grad.vec(p0, myfunc.1))
+
+
+```
+
+* http://www.mathworks.com/matlabcentral/answers/7898
+
+## New Implememtaion and Test Results!
+```{r eval=FALSE}
+H <-   matrix(c(0.0000, -0.0006,-0.0006 , 239.5203),2,2,byrow=TRUE)
+tmp<- eigen(H,symmetric=TRUE)
+V <- tmp$vectors
+g <- 1.0e+03 *c( -0.0000,1.4678)
+alpha <- -t(V)%*%g
+trust.exact(g,H,delta=2.5)
+
+lamini<-0
+delta <- 2.5
+alpha <-  1.0e+03 *c(-0.0000,1.4678)
+eigval <-  c(0.0000,239.5203)
+seceqn(laminit,eigval,alpha,delta)
+
+
+trust.exact(g=1.2403e+03,H=445.0376,delta=5)
+###########
+
+
+```
+
+Test KinGUI 2
+
+```{r eval=FALSE}
+library(KineticEval)
+setwd("C:/Projects2013/KinEvalGit/")
+data(schaefer07_complex_case)
+model <- mkinmod.full(
+  parent = list(type = "SFO", to = c("A1", "B1", "C1"), sink = FALSE),
+  A1 = list(type = "SFO", to = "A2"),
+  B1 = list(type = "SFO"),
+  C1 = list(type = "SFO"),
+  A2 = list(type = "SFO"),data=schaefer07_complex_case)
+
+Fit2 <- NULL
+alglist <- c("L-BFGS-B","Marq", "Port","spg","solnp","LM")
+for(i in 1:6) {
+  Fit2[[i]] <- mkinfit.full(model,plot = FALSE, quiet= TRUE,ctr = kingui.control(method = alglist[i],submethod = 'Port',maxIter = 100,tolerance = 1E-06, odesolver = 'lsoda'))
+  }
+## Save Fit2
+names(Fit2) <- alglist
+save(Fit2,file="Fit_Schaefer.rda")
+
+
+(lapply(Fit2, function(x) x$par))
+unlist(lapply(Fit2, function(x) x$ssr))
+##########################
+
+##########################
+load("ex1.rda")
+load("ex1_a.rda")
+#data(ex1_a)
+alglist <- c("L-BFGS-B","Marq", "Port","spg","solnp","LM")
+Fit <- NULL
+for(i in 1:6) {
+  Fit[[i]] <- mkinfit.full(ex1,plot = TRUE, quiet= TRUE,ctr = kingui.control(method = alglist[i],submethod = 'Port',maxIter = 100,tolerance = 1E-06, odesolver = 'lsoda'))
+  }
+names(Fit) <- alglist
+(lapply(Fit, function(x) x$par))
+kinplot(Fit[[6]])
+unlist(lapply(Fit, function(x) x$ssr))
+Fit_a <- NULL
+for(i in 1:6) {
+ Fit_a[[i]] <- mkinfit.full(ex1_a,plot = TRUE, quiet= TRUE,ctr = kingui.control(method = alglist[i],submethod = 'Port',maxIter = 100,tolerance = 1E-06, odesolver = 'lsoda'))
+ }
+unlist(lapply(Fit_a, function(x) x$ssr))
+
+## Test on data andrew:
+data(andrew)
+mkinmodini <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
+                           Metab=list(type="SFO",M0=list(ini=0,fixed=0,lower=0,upper=Inf)),data=andrew)
+for(i in 1:6) {
+  Fit[[i]] <- mkinfit.full(mkinmodini,plot = FALSE, quiet= TRUE,ctr = kingui.control(method = alglist[i],submethod = 'Port',maxIter = 100,tolerance = 1E-06, odesolver = 'lsoda'))
+  }
+names(Fit) <- alglist
+(lapply(Fit, function(x) x$par))
+unlist(lapply(Fit, function(x) x$ssr))
+
+#####################
+load("ex2.rda")
+Fit2 <- NULL
+alglist <- c("L-BFGS-B","Marq", "Port","spg","solnp","LM")
+for(i in 1:5) {
+  Fit2[[i]] <- mkinfit.full(ex2,plot = FALSE, quiet= TRUE,ctr = kingui.control(method = alglist[i],submethod = 'Port',maxIter = 100,tolerance = 1E-06, odesolver = 'lsoda'))
+  }
+
+
+```
+
+
+
+## Trust Region Theory and Implementation
+
+### Advantages:
+
+The primary advantage of trust region methods is stability. 
+
+*  requires gradient and Hessian of the objective function
+
+* is guaranteed to converge to a point satisfying the first and second order necessary conditions for a local optimum (gradient zero and Hessian positive semidefinite for minimization or negative semidefinite for maximization). nlm and optim come with no guarantees and often perform badly on difficult problems. 
+
+* handles restricted domains so long as the solution is in the interior of the domain. 
+
+* does not do global optimization, but neither does anything else in R.
+
+### General Ideas:
+
+Suppose $f : R^n \to R$ is a function we wish to minimize. The basic idea of trust region is to approximate $f$ with a simpler function $q$ (a quadradtic model) at the neighborhood $N$(trust region) aound point $x$. 
+
+$$q_k(p)=f(x_k)+\nabla{f(x_k)}^Tp+\frac{1}{2}p^T\nabla^2{f(x_k})p$$.
+
+A trial step is caclculated by minimizing $q(s)$. This is the trust region supproblem,
+
+$$\min \{q(s), s \in N\}$$
+
+where $s\in N$ is defined by $\|D_is\|\leq\Delta$, $\Delta >0$ is the radius of the trusted region. So the subproblems is to solve
+
+$$\min q_k(s) \text{ subject to } \|Ds\|\leq\Delta$$,
+
+Suppose $p_k$ is a solution to the trust region subproblem. The adjustment of $\Delta_k$ is done as follows
+$$
+   \rho_k = \frac{f(x_k) - f(x_k + p_k)}{q_k(0) - q_k(p_k)}
+$$
+which is the actual decrease in the objective function $f$ in the step
+compared to the predicted decrease using $q_k$.  If $\rho_k$ is small
+or negative, then $q_k$ is a bad model at $x_k + p_k$ so the trial step should not be used and the trust region radius should be adjusted.
+
+### Trust Region Subproblem(TRS)
+
+A vector $p^*$ is a global solution to the trust region subproblem if and only if
+$$
+
+   \lVert p^* \rVert \le \Delta
+
+$$
+and there exists a scalar $\lambda \ge 0$ such that
+$$
+\begin{gather}
+   (B + \lambda I) p^* = - g
+   \label{eq:derivative}
+   \\
+   \lambda = 0 \quad \text{or} \quad \lVert p^* \rVert = \Delta
+  
+   \\
+   B + \lambda I \ \text{is positive semidefinite}
+   
+\end{gather}
+$$
+where $B_k = \nabla^2 f(x_k)$. 
+
+* Case $\lambda=0$: If $B$ is positive definite and
+$p^* = - B^{-1} g$ satisfies $\|p^*\|\le \Delta$, then that is the solution.
+
+* Case $\|p^*\| = \Delta$, Define
+$$
+\begin{equation} \label{eq:plambda}
+   p(\lambda)
+   =
+   - (B + \lambda I)^{-1} g
+   =
+   - \sum_{j = 1}^{n} \frac{q_j^T g}{\lambda_j + \lambda} q_j
+\end{equation}
+$$
+where $\lambda_j$ are the eigenvalues of $B$ and $q_j$ are the corresponding orthonormal eigenvectors (this is valid only when $\lambda \neq - \lambda_j$ for all $j$). Then
+$$
+   \lVert p(\lambda) \rVert^2
+   =
+   \sum_{j = 1}^{n} \left( \frac{q_j^T g}{\lambda_j + \lambda} \right)^2
+$$
+The analysis again splits into several cases.
+
+  1. Let $\lambda_{\text{min}}$ denote the minimum eigenvalue of $B$. If
+  $$ (q_j^T g) \neq 0, \qquad \text{for some $j$ such that
+   $\lambda_j = \lambda_{\text{min}}$}
+   $$
+   then $p(\lambda)$ is a continuous, strictly decreasing function on the open interval $(- \lambda_{\text{min}}, \infty)$ and goes to $\infty$
+as $\lambda \to - \lambda_{\text{min}}$ and to zero as $\lambda \to \infty$. Thus a $\lambda^*$ such that $\lVert p(\lambda^*) \rVert^2 = \Delta^2$ exists and is unique, and $p(\lambda^*)$ is the solution to the trust region subproblem.
+  2. In the other case, $p(\lambda)$ is continuous at $\lambda = \lambda_{\text{min}}$ and now defines a continuous strictly decreasing function on
+the closed interval $[- \lambda_{\text{min}}, \infty)$, and $\lambda$
+must be in this interval in order for $B+\lambda I$ being positive definite.
+
+If $\lVert p(- \lambda_{\text{min}}) \rVert^2 > \Delta^2$, then there is still a unique $\lambda^*$ in $(- \lambda_{\text{min}}, \infty)$
+such that $\lVert p(\lambda^*) \rVert^2 = \Delta^2$, this $p(\lambda^*)$ is the solution to the TRS. Otherwise, we must have $\lambda = - \lambda_{\text{min}}$.Then $B + \lambda I$ is singular, and the $p(\lambda)$ defined above can no longer be used. Now solutions of $(B+\lambda_i)p=-g$ 
+are non-unique, and we have
+$$
+\begin{equation} 
+   p_{\text{hard}}(\tau)
+   =
+   - \sum_{\substack{j = 1 \\ \lambda_j \neq \lambda_{\text{min}}}}^n
+   \frac{q_j^T g}{\lambda_j - \lambda_{\text{min}}} q_j
+   +
+   \sum_{\substack{j = 1 \\ \lambda_j = \lambda_{\text{min}}}}^n
+   \tau_j q_j
+\end{equation}
+$$
+is a solution of $(B+\lambda_i)p=-g$ for every vector $\tau$.
+Since the first sum on the right hand side has
+norm less than $\Delta$ by the falsity of $\lVert p(- \lambda_{\text{min}}) \rVert^2 > \Delta^2$, we can choose $\tau$ to make $\lVert p_{\text{hard}}(\tau) \rVert = \Delta$. The nonuniqueness is not an issue, because (at least as far as the subproblem is concerned) one solution is just as good as another.
+
+* Steihuang(above procedure)
+* Dogleg, STIR
+
+### Practical Newton Methods - Trust-Region Newton Methods
+
+* Newton-dogleg
+* Newton-2D subspace 
+* Newton- Nearly Exact Solution
+* Trust Region Newton-(P)CG
+
+### Finite Difference ?
+
+* numerical gradients calculated by finite-difference approximation.
+
+* http://terminus.sdsu.edu/SDSU/Math693a_f2012/?r=sched   (Best reference lecture notes for me on numerical optimization)
+
+### Tricks in Matlab `lsqnonlin` implementation
+
+The TRR in matlab involves the following steps:
+
+1. Consider the trust region subproblem of finding trial step $s_i$ between the $i$-th point $x_i$ and the next point $x_{i+1}$ that minimizes $q_i(s)$. Formulate the 2-dimentional subspace $V$ with 2 spanning vectors $v_1$ and $v_2$. One vector is in the direction of the gradient $x_i$ and the other either in the approximate Gauss-Newton direction, i.e, a solution to $H\cdot v_2=-g$ or a direction of negative curvature($v_2^T\cdot H \cdot s_2 < 0$).
+
+  For nonlinear least squares, suppose $f=\sum_i f_i(x)^2$ , let $F=(f_1(x), ..., f_n(x))$, then $f=\|F\|$. The structure of nonlinear least square problems can be exploited to enhance efficiency. In particular, the approximate Gauss-Newton direction, i.e. a solution $s$ to $\min\|Js+F\|^2_2$ is used to help define the 2-dimentional subspace $V$. In each iteration, the method of preconditioned conjugate gradients(PCG) is used to approximately solve the normal equation, i.e. $J^TJs=-J^TF$, although the normal equations are not explicitly fomed
+
+2. Solve for the trial step $s_i$ of the 2-dimentional subproblem, i.e, solve the following equation: 
+$$\min\{ \frac{1}{2}s^THs+s^Tg, \text{ subject to } \|D_is\|\leq\Delta_i\} $$
+where $g$ is the gradient and $H$ is the Hessian matrix at the current point.
+
+3. If for a predefined constant $0 < \tau < 1$, $f(x_i+s) < f(x_i)$, then $x_{i+1}$ becomes the current point, otherwise $x_{i+1}=x_i$.
+
+4. Update $\Delta_i$. In particular, it is decreased if the trial step is not accepted.
+
+These 4 steps are repeated until convergence, i.e., if $\nabla f(s_i)$ is below a chose tolerance level, the algorithm ends.
+
+PCG uses a preconditioner matrix $P$ that makes the equation $Ax=b$ easier to solve by turning it into $P^{-1}(Ax-b)=0$
+
+    lsqnonlin -> snls -> sfdnls, trdog
+    
+### Algorithm STIR(subspace trust region interior reflective)
+
+Let $0<\mu<\eta<1, 0<\Lambda_l<\Lambda_u$, and $\gamma_1<1<\gamma_2$ be given. Let $x_0\in\text{int}(F)$, $\Delta_0<\Lambda_u$.
+
+For $k=0,1,...$
+
+1. Compute $f_k, g_k, D_k, H_k$, and $C_k$; define the quardratic model
+$$
+\psi_k(s)=g_k^Ts+\frac{1}{2}s^T(H_k+C_k)s.
+$$
+
+2. Compute a step $s_k$, with $s_k+x_k\in\text{int}(F)$, based on the subspace problem
+$$
+\min \psi_k(s) \text{ subject to } \|D_ks\|_2\leq\Delta_k, s\in S_k
+$$
+where the subspace $S_k$ is set up as below.
+
+3. Compute 
+$$
+\rho_k=\frac{f(x_k+s_k)-f(x_k)+\frac{1}{2}s_k^TC_ks_k}{\psi_k(s_k)}
+$$
+
+4. If $\rho_k>u$ then set $x_{k+1}=x_k+s_k$. Otherwise set $x_{k+1}=x_k$.
+
+5. Update $\Delta_k$ as specified below.
+
+**Determin Subspace $S_k$**
+
+**Updating Trust Region Size $\Delta_k$** 
+
+1. If $\rho_k<\mu$ then set $\Delta_{k+1}\in (0, \gamma_1\Delta_k]$.
+2. If $\rho_k\in(\mu,\eta)$ then set $\Delta_{k+1}\in [\gamma_1\Delta_k\, \Delta_k]$.
+3. If $\rho_k\geq \eta$ then 
+   * if $\Delta_k>\Lambda_l$ then set $\Delta_{k+1}\in$ either $(\gamma_1\Delta_k\, \Delta_k]$ or $[\Delta_k, \gamma_2\Delta_k]$.
+   * otherwise, set $\Delta_{k+1}\in[\Delta_k, \min(\gamma_2\Delta_k,\Lambda_u)]$
+
+
+
+### Some other's opinions
+
+Lsqnonlin is a modern implementation of the Levenberg-Marquardt(LM) method, which is the most popular algorithm for nonlinear least squares.
+
+Global convergence from arbitrary starting points is promoted via a trust region technique: at each iteration a quadratic surrogate model of the actual problem is constructed, and solved subject to a trust region - a ball around the current iterate, where the surrogate model is likely to be a good approximation of the true problem function.
+
+There's also a more classical line-search implementation of LM in lsqnonlin - to run it you have to change an option (see the link below for details).
+
+If the problem has bounds on the variables (say, all the parameters between zero and one), lsqnonlin uses an interior point method, which a modern approach to handling inequality constraints.
+
+More general constraints other than bounds are handled by the solver fmincon.
+
+If the problem is large scale (this doesn't happen very often in practice for nonlinear least squares), lsqnonlin has the option to use/estimate sparse Jacobians, or work with a Jacobian-times vector function instead of the Jacobian itself.
+
+### Lectures and Notes
+
+* http://www.mcs.anl.gov/~anitescu/CLASSES/2012/LECTURES/S310-2012-lect5.pdf
+* http://www.cs.umd.edu/users/oleary/a607/2008/index.html
+
+### Other's implementation
+
+* https://bitbucket.org/carandraug/octave/src/13d1e9bfa362/scripts/optimization/lsqnonneg.m?at=default
+* http://homepages.rpi.edu/~mitchj/pack.html
+* https://github.com/dkogan/libdogleg
+
+
+
+* http://mind.cog.jhu.edu/courses/680/octave/Installers/Octave/Octave.OSX10.6/Applications/MATLAB_R2009b.app/toolbox/optim/optim/
+
+-------------------------
+
+## Differential Equation and Jacobian!!
+
+* http://leto.net/x/2008/11/5-minute-math-lesson-what-is-a.html
+
+---------------------------
+
+## Using Sparse Matrice in R
+
+```{r eval=FALSE}
+library('Matrix')
+ 
+m1 <- matrix(0, nrow = 1000, ncol = 1000)
+m2 <- Matrix(0, nrow = 1000, ncol = 1000, sparse = TRUE)
+ 
+object.size(m1)
+# 8000200 bytes
+object.size(m2)
+# 5632 bytes
+
+m1[500, 500] <- 1
+m2[500, 500] <- 1
+ 
+object.size(m1)
+# 8000200 bytes
+object.size(m2)
+# 5648 bytes
+
+
+
+```
+The full matrix representation does not change in size because all of the zeros are being represented explicitly, while the sparse matrix is conserving that space by representing only the non-zero entries. With a simple subtraction, we find that adding one additional non-zero entry increases the storage requirement by 16 bytes. We can conclude that setting all of the entries to non-zero values would require 5632 + 16 * 1000 * 1000 bytes, which is 16,005,632 bytes or almost exactly twice the amount of storage required to use the full representation implemented by the matrix class.
+
+Of course, the take away lesson is that sparse matrices are very efficient if your data is sparse and mildly wasteful if your data is not sparse.
+
+Beyond simple initialization and assignment operations, we can perform quite a few other operations on objects of class Matrix, including vector multiplication, matrix addition and subtraction and transposition. In addition you can do binding operations using objects of class Matrix with the cBind and rBind functions.
+
+An alternative to the Matrix package is the slam package by Kurt Hornik and others. The sparse matrices generated using this package can be noticeably smaller than those generated by the Matrix package in some cases.
+
+* http://www.johnmyleswhite.com/notebook/2011/10/31/using-sparse-matrices-in-r/
+
+---------------------------
+
+## Least Square Special
+
+Chain rule can be applied to reduce amount of computation.
+
+The derivatives are calculated numerically using Richardson improvement
+The the first order derivative with respect to $x_i$ is
+
+$$f'_{i}(x) = (f(x_{1},.,x_{i}+d,.,x_{n}) - f(x_{1},.,x_{i}-d,.,x_{n}))/(2*d)$$
+
+The second order derivative with respect to $x_i$ is
+
+$$f''_{i}(x) = (f(x_{1},.,x_{i}+d,.,x_{n}) - 2 *f(x_{1},.,x_{n}) + f(x_{1},.,x_{i}-d,.,x_{n}))/(d^2)$$
+
+The second order derivative with respect to $x_i, x_j$ is
+
+$$f''_{i,j}(x) = (f(x_{1},.,x_{i}+d,.,x_{j}+d,.,x_{n}) - 2 *f(x_{1},.,x_{n}) +
+
+f(x_{1},.,x_{i}-d,.,x_{j}-d,.,x_{n}))/(2*d^2) - (f''_{i}(x) + f''_{j}(x))/2$$
+
+* http://neos-guide.org/content/nonlinear-least-squares
+* http://support.sas.com/documentation/cdl/en/statug/63962/HTML/default/viewer.htm#statug_nlin_sect020.htm
+
+```{r eval=FALSE}
+fm1 <- gnls(weight ~ SSlogis(Time, Asym, xmid, scal), Soybean,
+            weights = varPower())
+summary(fm1)
+```
+
+
+### using nls instead of optim directly.
 
 The `nls` function works normally like the following:
 
@@ -64,7 +487,10 @@ nls.lm(par=x0,fn=f)
 
 
 ```{r eval=FALSE}
-
+load("ex2.rda")
+load("ex1.rda")
+load("ex1_a.rda")
+mkinmodini <- ex2
 ## Get the parametrization.
   inpartri <- mkinmodini$inpartri
   outpartri <- mkinmodini$outpartri
@@ -132,37 +558,81 @@ nls.lm(par=x0,fn=f)
     }
     return(list(c(diffs)))
   }
-
+#####################
+ctr=kingui.control()
+ #### Control parameters ####
+  method <- ctr$method
+  odesolver <- ctr$odesolver
+  atol <- ctr$atol
+  rtol <- ctr$rtol
+  control <- ctr$control
+  marqctr <- ctr$marqctr
+  goMarq <- ctr$goMarq
+  submethod <- ctr$submethod
+  Hmethod1 <- ctr$Hmethod1
+  Hmethod2 <- ctr$Hmethod2
 ####################
 environment(kin_mod) <- environment()
-
+oldparms <- c(state.ini.optim,parms.optim)
+y <- observed$value
 kin_mod(P=oldparms)-y
 
 y <- observed$value
 a <- nls(y ~ kin_mod(P,pnames=names(oldparms)),start=list(P=oldparms),lower=lower,upper=upper,algorithm="port")
 summary(a)
 f <- function(P){
-  observed$value-kin_mod(P)
+    res <- observed$value-kin_mod(P)
+    id <- which(is.na(res))
+    return(res[-id])
+  }
+b <- nls.lm(par=oldparms,lower=lower,upper=upper,fn=f)
+b1 <- nls.lm(par=oldparms,lower=lower,upper=upper,fn=f,control=nls.lm.control(maxiter=100))
+compare_multi_kinmod(mkinmodini,t(coef(b)))
+pnames <- names(oldparms)
+obj1 <- function(P,lower,upper,...)
+  {
+    if(is.null(names(P))) names(P) <- pnames
+    if((any(P<lower)) || (any(P>upper)) return(1e100) else return(0.5*sum((kin_mod(P,...)-y)^2,na.rm=TRUE))
+  }
+## utilities
+gradfun_ls <- function(modelfun,par,obs,...)
+{
+  if(is.null(names(par))) names(par) <- pnames
+  np <- length(par)
+  resfun <- function(par,obs, ...){
+    modelfun(par,...)-obs
+  }
+  res <- resfun(par,obs=obs)
+  Jmat <- jacobian(modelfun,x=par)
+  ## when there are NA's, not included in the Jaobian!!!
+  id <- which(is.na(res))
+  g <- t(Jmat[-id,])%*%res[-id]
+  return(g)
 }
-nls.lm(par=oldparms,fn=f)
+gr1 <- function(P,...)
+  {
+    g<-gradfun_ls(modelfun=kin_mod,par=P,obs=observed$value)
+    g
+  }
+c <- trust.optim(x=oldparms,fn=obj1,gr=gr1,method="SR1")
+c.1 <- trust.optim(x=oldparms,fn=obj1,gr=gr1,method="BFGS")
+## Next using trust.
+obj <- function(par,Q=FALSE,...)
+  {
+    return(objfun_ls(modelfun=kin_mod,par,obs=observed$value,Q=Q,pnames=pnames...))
+    
+  }
+d <- trust_ls(objfun=obj,parinit=oldparms,rinit=1,rmax=100)
+###### Case 1: nls.lm better than nls
+###### Case 2: trust.optim better than nls.lm
+###### Case 3: STIR is the one for all
+
 
 ```
 
 
 -------------------------
 
-## Trust Region Theory and Implementation
-
-
-### Lectures and Notes
-
-* http://www.mcs.anl.gov/~anitescu/CLASSES/2012/LECTURES/S310-2012-lect5.pdf
-
-### Other's implementation
-
-* https://bitbucket.org/carandraug/octave/src/13d1e9bfa362/scripts/optimization/lsqnonneg.m?at=default
-* http://mind.cog.jhu.edu/courses/680/octave/Installers/Octave/Octave.OSX10.6/Applications/MATLAB_R2009b.app/toolbox/optim/optim/
--------------------------
 
 Stackoverflow Question
 ===========================================================

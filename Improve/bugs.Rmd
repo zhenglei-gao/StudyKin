@@ -1,7 +1,66 @@
 Bugs and Fixes
 ========================================================
+
+## Add 1: nls.lm as the standard optimization procedure. 
+
+
+## Bug 1: Anastasiia, 27/03/2013
+
+reason: k2=0 ! How to solve it??
+
+```{r}
+
+ WW <- mkinmod.full(
+         c1 = list(
+       time = c(    0,     0,     3,     3,     7,     7,    14,    14,    21,    21,    30,    30,    45,    45,    60,    60,    90,    90,   120,   120),
+    residue = c(75.04, 72.88, 74.00, 72.69, 62.49, 69.02, 62.05, 63.74, 58.88, 56.20, 52.70, 50.39, 40.20, 40.73, 29.43, 29.89, 29.16, 30.70, 25.41, 26.38),
+     weight = c(    1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1,     1),
+                   sink  = TRUE,
+       type = "DFOP",
+         k1 = list(ini   = 0.1000,
+                   fixed = 0,
+                   lower = 0.0,
+                   upper = Inf),
+         k2 = list(ini   = 0.0100,
+                   fixed = 0,
+                   lower = 0.0,
+                   upper = Inf),
+          g = list(ini   = 0.3000,
+                   fixed = 0,
+                   lower = 0.0,
+                   upper = 1),
+         M0 = list(ini   = 75.04,
+                   fixed = 0,
+                   lower = 0.0,
+                   upper = Inf)))
+
+
+#
+# Fit and optimizer
+#
+
+  Fit    <- IRLSkinfit.full(
+            WW,
+               plot      = TRUE,
+               quiet     = TRUE,
+               ctr       = kingui.control(
+                               method = 'solnp',
+                            submethod = 'Port',
+                              maxIter = 100,
+                            tolerance = 1E-06,
+                            odesolver = 'lsoda'),
+            irls.control = list(
+                              maxIter = 10,
+                            tolerance = 0.001))
+
+```
+
+
+
+
 In case the library cannot be loaded.
 ```{r env,eval=FALSE}
+.libPaths( c( .libPaths(), "M:/Personal Data/R/win-library/2.15/") ) ## why does it not work????????????????
 library("KineticEval",lib.loc="M:/Personal Data/R/win-library/2.15/")
 library("deSolve",lib.loc="M:/Personal Data/R/win-library/2.15/")
 library("rootSolve",lib.loc="M:/Personal Data/R/win-library/2.15/")
@@ -11,6 +70,17 @@ library("FME",lib.loc="M:/Personal Data/R/win-library/2.15/")
 library("mkin",lib.loc="M:/Personal Data/R/win-library/2.15/")
 library("numDeriv",lib.loc="M:/Personal Data/R/win-library/2.15/")
 library("optimx",lib.loc="M:/Personal Data/R/win-library/2.15/")
+
+## Not required
+library("quadprog",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("BB",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("ucminf",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("Rcgmin",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("Rvmmin",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("Rcpp",lib.loc="M:/Personal Data/R/win-library/2.15/")
+library("minqa",lib.loc="M:/Personal Data/R/win-library/2.15/")
+
+load("E:/KinEvalGit/exchange/andrew.rda")
 Sys.getenv()
 ```
 
@@ -24,7 +94,8 @@ Now assuming the sourcefunctions/packages are loaded.
 mkinmodini <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
                            Metab=list(type="SFO",M0=list(ini=0,fixed=0,lower=0,upper=Inf)),data=andrew)
 Fit <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'L-BFGS-B',submethod = 'Port'))
-compare_multi_kinmod(mkinmodini)
+Fit.LM <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'Marq',submethod = 'Port'))
+compare_multi_kinmod(mkinmodini,rbind(Fit$par,Fit.LM$par))
  
 compare_multi_kinmod(mkinmodini,rbind(Fit$par,c(2.0633,0.2105,0.3033,0.8945,1)))
 newmod1 <- update_kinmod(mkinmodini,newparms=Fit$par)$new_mkinmod
@@ -34,21 +105,22 @@ Fit2 <- mkinfit.full(newmod2,ctr= kingui.control(method = 'L-BFGS-B',submethod =
 compare_multi_kinmod(mkinmodini,rbind(Fit$par,c(2.0633,0.2105,0.3033,0.8945,1),Fit2$par))
 ```
 
-## Bug 2: the optimized parameters are not the same as specified in the model(Solved)
+## Bug 2 Solved: the optimized parameters are not the same as specified in the model
 ```{r bug2}
 ## a possible bug that the optimized parameters are not the same as specified in the model
-library(KineticEval)
 mkinmodini <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
                            Metab=list(type="SFO"),data=andrew)
-Fit <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'L-BFGS-B',submethod = 'Port'))
+mkinmodiniFree <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
+                           Metab=list(type="SFO",M0=list(ini=0,fixed=0,lower=0,upper=Inf)),data=andrew)
+Fit <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'Marq',submethod = 'Port'))
 newmod1 <- update_kinmod(mkinmodini,newparms=Fit$par)$new_mkinmod
 Fit1 <- mkinfit.full(newmod1,ctr= kingui.control(method = 'L-BFGS-B',submethod = 'Port'))
-####
-mkinmodini <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
-                           Metab=list(type="SFO",M0=list(ini=0,fixed=0,lower=0,upper=Inf)),data=andrew)
 newmod2 <- update_kinmod(mkinmodini,newparms=c(2.0633,0.2105,0.3033,0.8945,1))$new_mkinmod
 Fit2 <- mkinfit.full(newmod2,ctr= kingui.control(method = 'L-BFGS-B',submethod = 'Port'))
 compare_multi_kinmod(mkinmodini,rbind(Fit$par,c(2.0633,0.2105,0.3033,0.8945,1),Fit2$par))
+
+FitFree <-  mkinfit.full(mkinmodiniFree,ctr= kingui.control(method = 'Marq',submethod = 'Port'))
+
 ```
 You can also embed plots, for example:
 
@@ -56,3 +128,48 @@ You can also embed plots, for example:
 
 ```
 
+## Bug 3: warning of 0 in parameter values for Levenberg-Marquardt algorithm
+
+```{r eval=FALSE}
+
+mkinmodini <- mkinmod.full(Parent=list(type="SFO",to="Metab"),
+                           Metab=list(type="SFO",M0=list(ini=0,fixed=0,lower=0,upper=Inf)),data=andrew)
+Fit <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'L-BFGS-B',submethod = 'Port'))
+Fit.LM <- mkinfit.full(mkinmodini,ctr= kingui.control(method = 'Marq',submethod = 'Port'))
+compare_multi_kinmod(mkinmodini,rbind(Fit$par,Fit.LM$par))
+
+```
+
+It is not a bug, there is indeed 0 values in the parameters.
+
+##  Bug 4:
+
+When a compound has no metabolite and SINK is turned off, the program should automatically fix k=0.
+
+## Improvements
+
+The code can be similified by 
+
+```{r}
+a = 1
+params = c()
+params$a = 2
+myfun <- function(params) {
+  attach(params)
+  print(a)
+  detach(params)
+}
+myfun(params)
+
+params$b <- list(c=3,d=4)
+myfun2 <- function(params){
+  # Assume params is a list of parameters from 
+  # "params <- list(name1=value1, name2=value2, etc.)"
+  for (v in 1:length(params)) assign(names(params)[v], params[[v]])
+  # Use elements of params as parameters in a simulation
+  print(a)
+  print(b)
+}
+```
+* http://stackoverflow.com/questions/871/why-is-git-better-than-subversion
+* http://stackoverflow.com/questions/15187017/reduce-computing-time-for-reshape

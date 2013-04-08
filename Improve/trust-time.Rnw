@@ -1,0 +1,289 @@
+
+\documentclass[11pt]{article}
+
+\usepackage{indentfirst}
+\usepackage{url}
+\usepackage[utf8]{inputenc}
+
+\RequirePackage{amsmath}
+\newcommand{\boldbeta}{{\boldsymbol{\beta}}}
+\newcommand{\boldeta}{{\boldsymbol{\eta}}}
+\newcommand{\boldtheta}{{\boldsymbol{\theta}}}
+\newcommand{\boldthetahat}{{\boldsymbol{\hat{\theta}}}}
+\newcommand{\boldxi}{{\boldsymbol{\xi}}}
+\newcommand{\boldtau}{{\boldsymbol{\tau}}}
+\newcommand{\boldvarphi}{{\boldsymbol{\varphi}}}
+\newcommand{\boldzeta}{{\boldsymbol{\zeta}}}
+\newcommand{\boldA}{{\mathbf{A}}}
+\newcommand{\boldB}{{\mathbf{B}}}
+\newcommand{\boldM}{{\mathbf{M}}}
+
+% \VignetteIndexEntry{Timing Optimization Routines}
+
+\begin{document}
+
+\title{Timing Various Optimization Routines for the Aster Package}
+\author{Charles J. Geyer}
+\maketitle
+
+\section{Preliminaries}
+
+\subsection{Library and Data}
+
+<<setup>>=
+library(aster)
+packageDescription("aster")$Version
+data(echinacea)
+@
+That's our package and the dataset for our examples.
+
+We need to reshape the data.
+<<reshape>>=
+vars <- c("ld02", "ld03", "ld04", "fl02", "fl03", "fl04",
+    "hdct02", "hdct03", "hdct04")
+redata <- reshape(echinacea, varying = list(vars),
+     direction = "long", timevar = "varb", times = as.factor(vars),
+     v.names = "resp")
+names(redata)
+@
+Set up root data.
+<<reshape-too>>=
+redata <- data.frame(redata, root = 1)
+names(redata)
+@
+
+Set up aster model (graph structure and families)
+<<graph>>=
+pred <- c(0, 1, 2, 1, 2, 3, 4, 5, 6)
+fam <- c(1, 1, 1, 1, 1, 1, 3, 3, 3)
+families()[fam]
+@
+
+Add dummy variable that is ``pseudo-covariate'' that indicates
+which variables are head count variables.
+<<make-hdct>>=
+hdct <- grep("hdct", as.character(redata$varb))
+hdct <- is.element(seq(along = redata$varb), hdct)
+redata <- data.frame(redata, hdct = as.integer(hdct))
+names(redata)
+@
+
+\subsection{Fit Model}
+
+Here's the model we use for our timing tests.
+<<fit-4>>=
+aout4 <- aster(resp ~ varb + nsloc + ewloc + pop * hdct - pop,
+    pred, fam, varb, id, root, data = redata)
+summary(aout4, show.graph = TRUE)
+@
+and here's the ANOVA (analysis of deviance, log likelihood ratio test)
+table for these models
+
+\subsection{Prediction}
+
+Set the confidence level and critical value.
+<<conf-level>>=
+conf.level <- 0.95
+crit <- qnorm((1 + conf.level) / 2)
+@
+
+Construct new data for ``typical'' individuals
+(having zero-zero geometry) in each population.
+<<predict-newdata>>=
+newdata <- data.frame(pop = levels(echinacea$pop))
+for (v in vars)
+    newdata[[v]] <- 1
+newdata$root <- 1
+newdata$ewloc <- 0
+newdata$nsloc <- 0
+@
+
+And reshape it.
+<<predict-newdata-reshape>>=
+renewdata <- reshape(newdata, varying = list(vars),
+     direction = "long", timevar = "varb", times = as.factor(vars),
+     v.names = "resp")
+hdct <- grep("hdct", as.character(renewdata$varb))
+hdct <- is.element(seq(along = renewdata$varb), hdct)
+renewdata <- data.frame(renewdata, hdct = as.integer(hdct))
+names(redata)
+names(renewdata)
+@
+
+Construct linear function to predict.
+<<make-amat>>=
+nind <- nrow(newdata)
+nnode <- length(vars)
+amat <- array(0, c(nind, nnode, nind))
+for (i in 1:nind)
+    amat[i , grep("hdct", vars), i] <- 1
+@
+
+We are finally ready to make a prediction.
+<<tau-4-amat>>=
+pout4 <- predict(aout4, varvar = varb, idvar = id, root = root,
+    newdata = renewdata, se.fit = TRUE, amat = amat)
+@
+
+\section{Timing a Simulation}
+
+Create parameter for simulation.
+<<make-theta>>=
+theta.hat <- predict(aout4, model.type = "cond", parm.type = "canon")
+theta.hat <- matrix(theta.hat, nrow = nrow(aout4$x), ncol = ncol(aout4$x))
+fit.hat <- pout4$fit
+beta.hat <- aout4$coefficients
+@
+We also need root data, and it will be simpler if we actually don't
+use the forms of the \verb@aster@ and \verb@predict.aster@ functions
+that take formulas
+(because then we don't have to cram the simulated data in a data frame
+and we avoid a lot of repetitive parsing of the same formulas)
+<<make-root-etc>>=
+root <- aout4$root
+modmat <- aout4$modmat
+modmat.pred <- pout4$modmat
+x.pred <- matrix(1, nrow = dim(modmat.pred)[1], ncol = dim(modmat.pred)[2])
+root.pred <- x.pred
+@
+
+\subsection{Using NLM}
+
+Now we're ready for a simulation
+<<doit-1>>=
+save.time <- proc.time()
+set.seed(42)
+nboot <- 100
+cover <- matrix(0, nboot, length(fit.hat))
+for (iboot in 1:nboot) {
+    xstar <- raster(theta.hat, pred, fam, root)
+    aout4star <- aster(xstar, root, pred, fam, modmat, beta.hat,
+        method = "nlm", check.analyticals = FALSE)
+    pout4star <- predict(aout4star, x.pred, root.pred, modmat.pred,
+        amat, se.fit = TRUE)
+    upper <- pout4star$fit + crit * pout4star$se.fit
+    lower <- pout4star$fit - crit * pout4star$se.fit
+    cover[iboot, ] <- as.numeric(lower <= fit.hat & fit.hat <= upper)
+}
+pboot <- apply(cover, 2, mean)
+pboot.se <- sqrt(pboot * (1 - pboot) / nboot)
+cbind(pboot, pboot.se)
+elapsed.time.nlm <- proc.time() - save.time
+elapsed.time.nlm
+@
+
+\subsection{Using Trust}
+
+Repeat the simulation.  Use \verb@trust@ the new default.
+<<doit-2>>=
+save.time <- proc.time()
+set.seed(42)
+cover <- matrix(0, nboot, length(fit.hat))
+for (iboot in 1:nboot) {
+    xstar <- raster(theta.hat, pred, fam, root)
+    aout4star <- aster(xstar, root, pred, fam, modmat, beta.hat)
+    pout4star <- predict(aout4star, x.pred, root.pred, modmat.pred,
+        amat, se.fit = TRUE)
+    upper <- pout4star$fit + crit * pout4star$se.fit
+    lower <- pout4star$fit - crit * pout4star$se.fit
+    cover[iboot, ] <- as.numeric(lower <= fit.hat & fit.hat <= upper)
+}
+pboot <- apply(cover, 2, mean)
+pboot.se <- sqrt(pboot * (1 - pboot) / nboot)
+cbind(pboot, pboot.se)
+elapsed.time.trust <- proc.time() - save.time
+elapsed.time.trust
+@
+
+\subsection{Using Optim, Method L-BFGS-B}
+
+Repeat the simulation.  Use \verb@method = "L-BFGS-B"@.
+<<doit-3>>=
+save.time <- proc.time()
+set.seed(42)
+cover <- matrix(0, nboot, length(fit.hat))
+for (iboot in 1:nboot) {
+    xstar <- raster(theta.hat, pred, fam, root)
+    aout4star <- aster(xstar, root, pred, fam, modmat, beta.hat,
+        method = "L-BFGS-B")
+    pout4star <- predict(aout4star, x.pred, root.pred, modmat.pred,
+        amat, se.fit = TRUE)
+    upper <- pout4star$fit + crit * pout4star$se.fit
+    lower <- pout4star$fit - crit * pout4star$se.fit
+    cover[iboot, ] <- as.numeric(lower <= fit.hat & fit.hat <= upper)
+}
+pboot <- apply(cover, 2, mean)
+pboot.se <- sqrt(pboot * (1 - pboot) / nboot)
+cbind(pboot, pboot.se)
+elapsed.time.lbfgsb <- proc.time() - save.time
+elapsed.time.lbfgsb
+@
+
+\subsection{Using Optim, Method CG}
+
+Repeat the simulation.  Use \verb@method = "CG"@.
+<<doit-4>>=
+save.time <- proc.time()
+set.seed(42)
+cover <- matrix(0, nboot, length(fit.hat))
+for (iboot in 1:nboot) {
+    xstar <- raster(theta.hat, pred, fam, root)
+    aout4star <- aster(xstar, root, pred, fam, modmat, beta.hat,
+        method = "L-BFGS-B")
+    pout4star <- predict(aout4star, x.pred, root.pred, modmat.pred,
+        amat, se.fit = TRUE)
+    upper <- pout4star$fit + crit * pout4star$se.fit
+    lower <- pout4star$fit - crit * pout4star$se.fit
+    cover[iboot, ] <- as.numeric(lower <= fit.hat & fit.hat <= upper)
+}
+pboot <- apply(cover, 2, mean)
+pboot.se <- sqrt(pboot * (1 - pboot) / nboot)
+cbind(pboot, pboot.se)
+elapsed.time.cg <- proc.time() - save.time
+elapsed.time.cg
+@
+
+\subsection{Summary}
+
+<<dumbary>>=
+tvec <- c(elapsed.time.trust[1], elapsed.time.nlm[1],
+    elapsed.time.lbfgsb[1], elapsed.time.cg[1])
+foo <- tvec
+hvec <- floor(foo / 60^2)
+foo <- foo - hvec * 60^2
+mvec <- floor(foo / 60)
+svec <- foo - mvec * 60
+foo <- hvec
+foo <- cbind(foo, mvec)
+foo <- cbind(foo, svec)
+foo <- cbind(foo, tvec / tvec[1])
+foo <- round(foo, 1)
+dimnames(foo) <- list(c("trust", "nlm", "optim L-BFGS-B", "optim CG"),
+    c("hours", "minutes", "seconds", "ratio"))
+if (all(foo[ , 1] == 0))
+    foo <- foo[ , -1]
+foo
+@
+
+And info about the computer (if linux box)
+<<theend>>=
+fred <- try(system("cat /proc/cpuinfo", intern = TRUE))
+sally <- try(system("hostname -f", intern = TRUE))
+if (! inherits(fred, "try-error")) {
+    cpuname <- fred[grep("model name", fred)]
+    cpusped <- fred[grep("cpu MHz", fred)]
+    cpuname <- cpuname[1]
+    cpusped <- cpusped[1]
+    cpuname <- sub("^[^:]*: *", "", cpuname)
+    cpusped <- sub("^[^:]*: *", "", cpusped)
+    cat("cpu:", cpuname, "\n")
+    cat("cpu speed:", cpusped, "MHz\n")
+}
+if (! inherits(sally, "try-error")) {
+    cat("My name is", sally, "\n")
+}
+@
+
+\end{document}
+
+\begin{center} \LARGE REVISED DOWN TO HERE \end{center}

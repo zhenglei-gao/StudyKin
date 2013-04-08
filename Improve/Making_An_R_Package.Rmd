@@ -1,0 +1,133 @@
+Making an R Package
+========================================================
+
+## The Procedure
+
+### Standard way
+
+1. Write R functions
+2. Write R help documents with `package.skeleton()` and DESCRIPTION file
+3. Run `R CMD INSTALL pkg` under the parent directory
+4. using `library(pkg)` to load the installed library
+
+### With some tools
+1. Write R functions and inline documentation with the **roxygen2** style.
+2. Write DESCRIPTION and vignette(.Rnw files).
+3. Using the functions in **devtools**
+
+Example: 
+```{r eval=FALSE}
+library(roxygen2)
+library(devtools)
+roxygenize('pkg')
+
+check('pkg',cleanup=FALSE)
+
+build('pkg')
+
+release('pkg')
+
+```
+
+### Advanced
+See:
+* https://github.com/hadley/devtools/wiki/Package-development-cycle
+* https://github.com/hadley/devtools/wiki/Release
+* http://cos.name/2011/05/write-r-packages-like-a-ninja/
+
+## Document the package
+
+Using Roxygen style. 
+
+* http://blog.rstudio.org/author/rstudioblog/
+
+## Dealing with Notes and Warnings
+
+We have a lot!!
+
+Quote from R-ext 1.5 Submitting a package to CRAN:
+
+> Please ensure that you can run through the complete procedure with only warnings that you understand and have reasons not to eliminate. In principle, packages must pass R CMD check without warnings to be admitted to the main CRAN package area. If there are warnings you cannot eliminate (for example because you believe them to be spurious) send an explanatory note with your submission.
+
+### Installation Errors:
+
+```
+* installing *source* package 'KineticEval' ...
+** R
+** data
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded
+Warning in library(pkg_name, lib.loc = lib, character.only = TRUE, logical.return = TRUE) :
+  no library trees found in 'lib.loc'
+Error: loading failed
+Execution halted
+ERROR: loading failed
+* removing '\\by-cs63002/user-bcs-012002$/gbbfx/Personal Data/R/win-library/2.15/KineticEval'
+
+```
+Solution:`install("KineticEval",args='-l "M:/Personal Data/R/win-library/2.15"')`
+
+### Latex Errors:
+
+> ```
+LaTeX errors when creating PDF version.
+This typically indicates Rd problems.
+LaTeX errors found:
+! LaTeX Error: File `inconsolata.sty' not found.
+```
+
+http://tex.stackexchange.com/questions/69483/create-a-local-texmf-tree-in-miktex
+http://tex.stackexchange.com/questions/2063/how-can-i-manually-install-a-package-on-miktex-windows
+http://tex.stackexchange.com/questions/88423/manual-font-installation
+
+We at Bayer site have to install some font packages like **inconsolata** manually. Otherwise, it can be installed from the internet.
+
+### Namespace and Import
+
+```
+#' @importFrom mkin SFO.solution DFOP.solution HS.solution SFORB.solution FOMC.solution mkin_wide_to_long
+#' @importFrom FME modCost 
+#' @importFrom deSolve ode
+#' @importFrom minqa bobyqa 
+#' @importFrom BB spg
+```
+
+
+### Document S3 methods
+
+* @S3method and @method
+
+* no @usage
+
+* @rdname otherwise duplicated .Rd warning
+
+* @export
+
+* @aliases
+
+* For generic methods: http://stackoverflow.com/questions/7198758/roxygen2-how-to-properly-document-s3-methods?lq=1
+
+* example: plot(x,y,...), plot.mcmckingui(x,y,...)
+
+### Masked objects:
+
+* `attach()`  does not but `load()` does overwrite objects in .GlobalEnv
+* http://statistics.ats.ucla.edu/stat/r/faq/referencing_objects.htm
+
+
+### Missing link(s) in documentation object 
+
+### no visible global function definition
+
+### no visible binding for global variable 'FF'
+
+## Other Useful commands
+
+* `(.packages())` : list of the loaded libraries
+* `installed.packages()[1:5,]`
+* `is.element("KineticEval", installed.packages()[,1])`
+* `sessionInfo()`, `search()`
+
